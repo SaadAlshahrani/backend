@@ -22,3 +22,14 @@ Content-Type: application/json
 {
     "important": false
 }
+
+###
+
+POST http://localhost:3001/api/users
+Content-Type: application/json
+
+{
+    "username": "shah",
+    "name": "Saad",
+    "password": "bugunga"
+}

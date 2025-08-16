@@ -3,6 +3,8 @@ const assert = require('node:assert')
 const mongoose = require('mongoose')
 const supertest = require('supertest')
 const Note = require('../models/note')
+const User = require('../models/user')
+const bcrypt = require('bcrypt')
 const helper = require('./test_helper')
 const app = require('../app')
 
@@ -98,6 +100,58 @@ describe('when there is initially some notes saved', () => {
       assert(!contents.includes(noteToDelete.content))
       assert.strictEqual(notesAtEnd.length, helper.initialNotes.length - 1)
     })
+  })
+})
+
+describe('when there is initially one user in the database', () => {
+  beforeEach(async () => {
+    await User.deleteMany({})
+
+    const passwordHash = await bcrypt.hash('secret', 10)
+    const newUser = new User({ username: 'root', passwordHash })
+
+    await newUser.save()
+  })
+
+  test('creation of a new user succeeds with a fresh username', async () => {
+    const usersAtStart = await helper.usersInDb()
+
+    const newUser = {
+      username: 'shah110',
+      name: 'Saad Alshahrani',
+      password: 'Bugunga'
+    }
+
+    await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(201)
+      .expect('Content-Type', /application\/json/)
+
+    const usersAtEnd = await helper.usersInDb()
+    assert.strictEqual(usersAtEnd.length, usersAtStart.length + 1)
+
+    const usernames = usersAtEnd.map(user => user.username)
+    assert(usernames.includes(newUser.username))
+  })
+
+  test('creation of a new user fails with proper status code if username is already taken', async () => {
+    const usersAtStart = await helper.usersInDb()
+
+    const newUser = {
+      username: 'root',
+      name: 'Superuser',
+      password: 'Bugunga'
+    }
+
+    await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(400)
+      .expect('Content-Type', /application\/json/)
+
+    const usersAtEnd = await helper.usersInDb()
+    assert.strictEqual(usersAtEnd.length, usersAtStart.length)
   })
 })
 
